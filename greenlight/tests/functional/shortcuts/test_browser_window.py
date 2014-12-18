@@ -10,22 +10,34 @@ class TestBrowserWindowShortcuts(FirefoxTestCase):
     def setUp(self):
         FirefoxTestCase.setUp(self)
 
+        # Put history in the tab to make this test deterministic
+        # with respect to tab opening behaviour.
+        with self.client.using_context('content'):
+            self.client.navigate('data:text/html, <h1>Test</h1>')
+            self.client.navigate('about:blank')
+
     def test_addons_manager(self):
         key = self.browser.get_localized_entity('addons.commandkey')
 
         num_tabs = len(self.browser.tabbar.tabs)
+        original_window = self.client.current_window_handle
+        windows = self.client.window_handles
 
         # On Linux the shortcut will only work if no other text field has focus
         # TODO: Remove focus from the location bar
         self.browser.send_keys(self.keys.SHIFT, self.keys.ACCEL, key)
         self.assertEqual(len(self.browser.tabbar.tabs), num_tabs + 1)
+        new_window = (set(self.client.window_handles) - set(windows)).pop()
 
         # TODO: For now we have to hard-code the tab, but we should really work
         # with events here to get the new tab automatically.
-        self.marionette.set_context("content")
+        with self.client.using_context("content"):
+          self.client.switch_to_window(new_window)
+          self.wait_for_condition(lambda mn: mn.get_url() == "about:addons")
+          self.client.close()
+          self.client.switch_to_window(original_window)
+          self.assertEqual(self.client.get_url(), "about:blank")
 
-        # Marionette currently fails to detect the correct tab
-        #self.wait_for_condition(lambda mn: mn.get_url() == "about:addons")
 
     def test_search_field(self):
         current_name = self.marionette.execute_script("""
