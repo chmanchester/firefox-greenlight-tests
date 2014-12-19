@@ -15,8 +15,6 @@ class TestAboutPrivateBrowsing(FirefoxTestCase):
     def tearDown(self):
         self.prefs.restore_pref('app.support.baseURL')
 
-        self.marionette.close()
-
     def testCheckAboutPrivateBrowsing(self):
         self.assertFalse(self.browser.is_private)
 
@@ -35,33 +33,42 @@ class TestAboutPrivateBrowsing(FirefoxTestCase):
         access_key = self.browser.get_localized_entity(
             'privatebrowsingpage.openPrivateWindow.accesskey')
 
+        start_win = self.client.current_window_handle
         # Send keys to the top html element.
         top_html = self.marionette.find_element(By.TAG_NAME, 'html')
         top_html.send_keys(self.keys.SHIFT, self.keys.ACCEL, access_key)
 
         self.wait_for_condition(lambda mn: len(self.windows.all) == 2)
-        self.windows.switch_to(lambda win: win.is_private)
-        self.browser_pb = self.windows.current
 
-        self.assertTrue(self.browser_pb.is_private)
+        windows = self.client.window_handles
+        windows.remove(start_win)
+        dest_pb_win = windows.pop()
+
+        with self.marionette.using_context('chrome'):
+            self.windows.switch_to(lambda win: win.is_private)
+            self.browser_pb = self.windows.current
+            self.assertTrue(self.browser_pb.is_private)
 
         def find_element(mn):
             try:
-                link = self.marionette.find_element(By.ID, 'learnMore')
+                link = self.client.find_element(By.ID, 'learnMore')
                 link.click()
                 return True
             except errors.NoSuchElementException:
                 return False
-        self.wait_for_condition(find_element)
 
-        self.marionette.set_context('chrome')
-        self.assertEqual(len(self.browser.tabbar.tabs), 2,
-                         "A new tab has been opened")
+        self.wait_for_condition(find_element)
+        self.wait_for_condition(lambda mn: len(mn.window_handles) == 3)
+        windows = self.client.window_handles
+        windows.remove(start_win)
 
         target_url = self.pb_url + 'private-browsing'
-        url_bar = self.marionette.find_element(By.ID, 'urlbar')
+        pb_win = windows.pop()
+        self.client.switch_to_window(pb_win)
+        self.assertIn(self.client.get_url(), target_url)
 
-        # TODO: get_url does not correspond to what we want here.
-        self.assertIn(url_bar.get_attribute('value'), target_url)
+        self.client.close()
+        self.client.switch_to_window(dest_pb_win)
+        self.client.close()
 
-        self.browser_pb.close()
+        self.client.switch_to_window(start_win)
