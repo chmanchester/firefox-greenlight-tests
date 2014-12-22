@@ -71,7 +71,7 @@ class BaseWindow(DOMElement):
 
         :raises MarionetteException: When property id is not found.
         """
-        return self.l10n.get_localized_entity(self.dtds, property_id)
+        return self.l10n.get_localized_property(self.properties, property_id)
 
     def send_shortcut(self, shortcut):
         """Sends a keyboard shortcut to the window
