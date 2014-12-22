@@ -34,32 +34,42 @@ class DefaultPrefBranch(BaseLib):
             value = value[1:-1]
         return value
 
-    def get_pref(self, pref):
+    def get_pref(self, pref, interface=None):
         """
         Retrive a preference.
 
         :param pref: The preference to inspect,e.g
                      browser.tabs.remote.autostart
+        :param interface: Interface to use for the complex value (optional)
+                 (nsILocalFile, nsISupportsString, nsIPrefLocalizedString)
+
         :returns: The value of the specified pref.
         """
         with self.client.using_context('chrome'):
-            value = self.client.execute_script("""
-              let pref = arguments[0];
-              let prefBranch = Cc["@mozilla.org/preferences-service;1"]
-                              .getService(Ci.nsIPrefBranch);
-              let type = prefBranch.getPrefType(pref);
+            if interface is not None:
+                value = self.client.execute_script("""
+                let prefBranch = Cc["@mozilla.org/preferences-service;1"]
+                                  .getService(Ci.nsIPrefBranch);
+                return prefBranch.getComplexValue(arguments[0], Ci[arguments[1]]).data;
+                """, script_args=[pref, interface])
+            else:
+                value = self.client.execute_script("""
+                let pref = arguments[0];
+                let prefBranch = Cc["@mozilla.org/preferences-service;1"]
+                                  .getService(Ci.nsIPrefBranch);
+                let type = prefBranch.getPrefType(pref);
 
-              switch (type) {
-                case prefBranch.PREF_STRING:
-                  return prefBranch.getCharPref(pref);
-                case prefBranch.PREF_BOOL:
-                  return prefBranch.getBoolPref(pref);
-                case prefBranch.PREF_INT:
-                  return prefBranch.getIntPref(pref);
-                case prefBranch.PREF_INVALID:
-                  return null;
-              }
-            """, script_args=[pref])
+                switch (type) {
+                  case prefBranch.PREF_STRING:
+                    return prefBranch.getCharPref(pref);
+                  case prefBranch.PREF_BOOL:
+                    return prefBranch.getBoolPref(pref);
+                  case prefBranch.PREF_INT:
+                    return prefBranch.getIntPref(pref);
+                  case prefBranch.PREF_INVALID:
+                    return null;
+                }
+              """, script_args=[pref])
 
         return self._cast(value)
 
