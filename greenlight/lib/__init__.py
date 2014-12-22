@@ -49,6 +49,14 @@ class Puppeteer(object):
         See the :class:`~api.prefs.DefaultPrefBranch` reference.
         """
 
+    @use_lib_as_property('api.permissions.Permissions')
+    def perms(self):
+        """
+        Provides an api for interacting with permissions.
+
+        See the :class:`~api.permissions.Permissions` reference.
+        """
+
 
 class DOMElement(HTMLElement):
     """
