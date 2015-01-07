@@ -19,7 +19,7 @@ class TestPreferences(FirefoxTestCase):
         self.int_pref = 'browser.tabs.maxOpenBeforeWarn'
         self.string_pref = 'browser.newtab.url'
 
-    def tst_clear_user_pref(self):
+    def test_clear_user_pref(self):
         self.prefs.set_pref(self.string_pref, 'unittest')
         self.assertEqual(self.prefs.get_pref(self.string_pref), 'unittest')
 
@@ -57,7 +57,7 @@ class TestPreferences(FirefoxTestCase):
                                     interface='nsIPrefLocalizedString')
         self.assertNotEqual(value, properties_file)
 
-    def tst_restore_pref(self):
+    def test_restore_pref(self):
         # Test with single set_pref call and a new preference
         self.prefs.set_pref(self.new_pref, True)
         self.assertTrue(self.prefs.get_pref(self.new_pref))
@@ -82,7 +82,7 @@ class TestPreferences(FirefoxTestCase):
         self.assertRaises(MarionetteException,
                           self.prefs.restore_pref, self.unknown_pref)
 
-    def tst_restore_all_prefs(self):
+    def test_restore_all_prefs(self):
         orig_bool = self.prefs.get_pref(self.bool_pref)
         orig_int = self.prefs.get_pref(self.int_pref)
         orig_string = self.prefs.get_pref(self.string_pref)
@@ -96,7 +96,7 @@ class TestPreferences(FirefoxTestCase):
         self.assertEqual(self.prefs.get_pref(self.int_pref), orig_int)
         self.assertEqual(self.prefs.get_pref(self.string_pref), orig_string)
 
-    def tst_set_pref_casted_values(self):
+    def test_set_pref_casted_values(self):
         # basestring as boolean
         self.prefs.set_pref(self.bool_pref, '')
         self.assertFalse(self.prefs.get_pref(self.bool_pref))
@@ -122,11 +122,11 @@ class TestPreferences(FirefoxTestCase):
         self.prefs.set_pref(self.string_pref, 54)
         self.assertEqual(self.prefs.get_pref(self.string_pref), '54')
 
-    def tst_set_pref_invalid(self):
+    def test_set_pref_invalid(self):
         self.assertRaises(AssertionError,
                           self.prefs.set_pref, self.new_pref, None)
 
-    def tst_set_pref_new_preference(self):
+    def test_set_pref_new_preference(self):
         self.prefs.set_pref(self.new_pref, True)
         self.assertTrue(self.prefs.get_pref(self.new_pref))
         self.prefs.clear_user_pref(self.new_pref)
@@ -139,7 +139,7 @@ class TestPreferences(FirefoxTestCase):
         self.assertEqual(self.prefs.get_pref(self.new_pref), 'test')
         self.prefs.clear_user_pref(self.new_pref)
 
-    def tst_set_pref_new_values(self):
+    def test_set_pref_new_values(self):
         self.prefs.set_pref(self.bool_pref, True)
         self.assertTrue(self.prefs.get_pref(self.bool_pref))
 
