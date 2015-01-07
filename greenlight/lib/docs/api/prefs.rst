@@ -3,5 +3,5 @@
 Preferences
 ===========
 
-.. autoclass:: DefaultPrefBranch
+.. autoclass:: Preferences
    :members:

@@ -2,109 +2,174 @@
 # License, v. 2.0. If a copy of the MPL was not distributed with this file,
 # You can obtain one at http://mozilla.org/MPL/2.0/.
 
+from marionette.errors import MarionetteException
+
 from ..base import BaseLib
 
 
-class DefaultPrefBranch(BaseLib):
+class Preferences(BaseLib):
     archive = {}
 
-    @classmethod
-    def _cast(cls, value):
-        """
-        Interpolate a preference from a string.
+    def clear_user_pref(self, pref_name):
+        """Clear a user set preference.
 
-        - integers will get cast to integers
-        - true/false will get cast to True/False
-        - anything enclosed in single quotes will be treated as a string with
-          the ''s removed from both sides
-        """
-
-        if not isinstance(value, basestring):
-            return value  # no op
-        quote = "'"
-        if value == 'true':
-            return True
-        if value == 'false':
-            return False
-        try:
-            return int(value)
-        except ValueError:
-            pass
-        if value.startswith(quote) and value.endswith(quote):
-            value = value[1:-1]
-        return value
-
-    def get_pref(self, pref):
-        """
-        Retrive a preference.
-
-        :param pref: The preference to inspect,e.g
-                     browser.tabs.remote.autostart
-        :returns: The value of the specified pref.
+        :param pref_name: The preference to clear
         """
         with self.marionette.using_context('chrome'):
+            return self.marionette.execute_script("""
+              Cu.import("resource://gre/modules/Services.jsm");
+              let prefBranch = Services.prefs.QueryInterface(Ci.nsIPrefBranch);
+
+              let pref_name = arguments[0];
+
+              if (prefBranch.prefHasUserValue(pref_name)) {
+                prefBranch.clearUserPref(pref_name);
+                return true;
+              }
+              else {
+                return false;
+              }
+            """, script_args=[pref_name])
+
+    def get_pref(self, pref_name, default_branch=False, interface=None):
+        """
+        Retrieve a preference.
+
+        :param pref_name: The preference name to retrieve the value from
+        :param default_branch: Read from the default branch (default False)
+        :param interface: Interface to use for the complex value (default None)
+                          Possible values are: nsILocalFile, nsISupportsString,
+                          and nsIPrefLocalizedString
+
+        :returns: The value of the specified preference.
+        """
+        assert pref_name
+
+        # Bug 1118825 - None is causing an exception to be raised
+        interface = interface or ''
+
+        with self.marionette.using_context('chrome'):
             value = self.marionette.execute_script("""
-              let pref = arguments[0];
-              let prefBranch = Cc["@mozilla.org/preferences-service;1"]
-                              .getService(Ci.nsIPrefBranch);
-              let type = prefBranch.getPrefType(pref);
+              Cu.import("resource://gre/modules/Services.jsm");
+
+              let pref_name = arguments[0];
+              let default_branch = arguments[1];
+              let interface = arguments[2];
+
+              let prefBranch = undefined;
+              if (default_branch) {
+                prefBranch = Services.prefs.getDefaultBranch("");
+              }
+              else {
+                prefBranch = Services.prefs.QueryInterface(Ci.nsIPrefBranch);
+              }
+
+              // If an interface has been set, handle it differently
+              if (interface != '') {
+                return prefBranch.getComplexValue(pref_name,
+                                                  Ci[interface]).data;
+              }
+
+              let type = prefBranch.getPrefType(pref_name);
 
               switch (type) {
                 case prefBranch.PREF_STRING:
-                  return prefBranch.getCharPref(pref);
+                  return prefBranch.getCharPref(pref_name);
                 case prefBranch.PREF_BOOL:
-                  return prefBranch.getBoolPref(pref);
+                  return prefBranch.getBoolPref(pref_name);
                 case prefBranch.PREF_INT:
-                  return prefBranch.getIntPref(pref);
+                  return prefBranch.getIntPref(pref_name);
                 case prefBranch.PREF_INVALID:
                   return null;
               }
-            """, script_args=[pref])
+            """, script_args=[pref_name, default_branch, interface])
 
-        return self._cast(value)
+        return value
 
-    def set_pref(self, pref, value):
-        """
-        Sets the specified pref to value. Also archives the old value so that
-        the pref can be restored with `restore_pref`.
+    def set_pref(self, pref_name, value):
+        """Sets a preference to a specified value.
 
-        :param pref: The preference to set.
+        Also archives the old value so that the preference can be restored with
+        `restore_pref`.
+
+        :param pref_name: Name of the preference to set.
         :param value: The value to set the preference to.
         """
-        with self.marionette.using_context('chrome'):
-            self.archive[pref] = self.get_pref(pref)
+        assert pref_name is not None
+        assert value is not None
 
-            ret = self.marionette.execute_script("""
-              let pref = arguments[0];
+        with self.marionette.using_context('chrome'):
+            # Backup original value only once
+            if pref_name not in self.archive:
+                self.archive[pref_name] = self.get_pref(pref_name)
+
+            retval = self.marionette.execute_script("""
+              Cu.import("resource://gre/modules/Services.jsm");
+              let prefBranch = Services.prefs.QueryInterface(Ci.nsIPrefBranch);
+
+              let pref_name = arguments[0];
               let value = arguments[1];
-              let prefBranch = Cc["@mozilla.org/preferences-service;1"]
-                               .getService(Ci.nsIPrefBranch);
-              let type = prefBranch.getPrefType(pref);
+
+              let type = prefBranch.getPrefType(pref_name);
+
+              // If the pref does not exist yet, get the type from the value
+              if (type == prefBranch.PREF_INVALID) {
+                switch (typeof value) {
+                  case "boolean":
+                    type = prefBranch.PREF_BOOL;
+                    break;
+                  case "number":
+                    type = prefBranch.PREF_INT;
+                    break;
+                  case "string":
+                    type = prefBranch.PREF_STRING;
+                    break;
+                  default:
+                    type = prefBranch.PREF_INVALID;
+                }
+              }
 
               switch (type) {
                 case prefBranch.PREF_BOOL:
-                  prefBranch.setBoolPref(pref, value);
+                  prefBranch.setBoolPref(pref_name, value);
                   break;
                 case prefBranch.PREF_STRING:
-                  prefBranch.setCharPref(pref, value);
+                  prefBranch.setCharPref(pref_name, value);
                   break;
                 case prefBranch.PREF_INT:
-                  prefBranch.setIntPref(pref, value);
+                  prefBranch.setIntPref(pref_name, value);
                   break;
                 default:
                   return false;
               }
 
               return true;
-            """, script_args=[pref, value])
+            """, script_args=[pref_name, value])
 
-        assert ret
+        assert retval
 
-    def restore_pref(self, pref):
+    def restore_all_prefs(self):
+        """Restore all previously set preferences to their original value."""
+        while len(self.archive):
+            self.restore_pref(self.archive.keys()[0])
+
+    def restore_pref(self, pref_name):
+        """Restore a previously set preference to its original value.
+
+        If the preference is not a default preference and has been newly
+        created, it will be removed.
+
+        :param name: The name of the preference to restore.
         """
-        Restore a previously set pref back to its original value.
+        assert pref_name
 
-        :param pref: The preference to restore. It must be a preference that
-                     was previously set using `set_pref`.
-        """
-        return self.set_pref(pref, self.archive[pref])
+        try:
+            if self.archive[pref_name] is None:
+                self.clear_user_pref(pref_name)
+            else:
+                self.set_pref(pref_name, self.archive[pref_name])
+
+            del self.archive[pref_name]
+        except KeyError:
+            raise MarionetteException('Nothing to restore for preference "%s"',
+                                      pref_name)
