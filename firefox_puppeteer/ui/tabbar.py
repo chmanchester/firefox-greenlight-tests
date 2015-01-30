@@ -13,7 +13,7 @@ from .. import DOMElement
 from ..base import BaseLib
 
 
-class Tabs(BaseLib):
+class TabBar(BaseLib):
 
     # TODO arrow scrollers, drop down list
 

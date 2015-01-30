@@ -424,13 +424,13 @@ class BrowserWindow(BaseWindow):
         See the :class:`~ui.navbar.NavBar` reference.
         """
 
-    @use_class_as_property('ui.tabbar.Tabs')
+    @use_class_as_property('ui.tabbar.TabBar')
     def tabbar(self):
         """
         Provides access to the tab bar. This is the toolbar containing all the
         tabs, the new tab button, and the tab menu
 
-        See the :class:`~ui.tabbar.Tabs` reference.
+        See the :class:`~ui.tabbar.TabBar` reference.
         """
 
     def close(self, trigger='menu', force=False):
