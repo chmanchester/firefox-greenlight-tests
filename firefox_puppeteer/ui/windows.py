@@ -402,6 +402,11 @@ class BrowserWindow(BaseWindow):
         'chrome://browser/locale/preferences/preferences.properties',
     ]
 
+    def __init__(self, *args, **kwargs):
+        BaseWindow.__init__(self, *args, **kwargs)
+
+        self._tabbar = None
+
     @property
     def is_private(self):
         """Returns True if it is a Private Browsing window."""
@@ -424,7 +429,7 @@ class BrowserWindow(BaseWindow):
         See the :class:`~ui.navbar.NavBar` reference.
         """
 
-    @use_class_as_property('ui.tabbar.TabBar')
+    @property
     def tabbar(self):
         """
         Provides access to the tab bar. This is the toolbar containing all the
@@ -432,6 +437,11 @@ class BrowserWindow(BaseWindow):
 
         See the :class:`~ui.tabbar.TabBar` reference.
         """
+        if not self._tabbar:
+            from .tabbar import TabBar
+            self._tabbar = TabBar(lambda: self.marionette, self)
+
+        return self._tabbar
 
     def close(self, trigger='menu', force=False):
         """Closes the current browser window by using the specified trigger.

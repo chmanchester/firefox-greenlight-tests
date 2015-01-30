@@ -13,5 +13,9 @@ class UnexpectedWindowTypeError(MarionetteException):
     pass
 
 
+class UnknownTabError(MarionetteException):
+    pass
+
+
 class UnknownWindowError(MarionetteException):
     pass
