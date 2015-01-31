@@ -26,10 +26,10 @@ class FirefoxTestCase(MarionetteTestCase, Puppeteer):
     def tearDown(self, *args, **kwargs):
         try:
             # Marionette needs an existent window to be selected. Take the first
-            # browser window which usually should not have been closed
+            # browser window which has at least one open tab
             # TODO: We might have to make this more error prone in case the
             # original window has been closed.
-            self.browser.switch_to()
+            self.browser.tabbar.tabs[0].switch_to()
 
             self.prefs.restore_all_prefs()
 

@@ -18,9 +18,7 @@ class TestNewTab(FirefoxTestCase):
         FirefoxTestCase.tearDown(self)
 
     def test_open_tab_by_newtab_button(self):
-        num_tabs = len(self.browser.tabbar.tabs)
-        self.browser.tabbar.newtab_button.click()
-        self.assertEqual(len(self.browser.tabbar.tabs), num_tabs + 1)
+        self.browser.tabbar.open_tab('button')
 
         newtab_url = self.prefs.get_pref('browser.newtab.url')
         with self.marionette.using_context("content"):

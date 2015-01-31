@@ -7,7 +7,7 @@ from marionette import (
     Wait,
 )
 
-from marionette.errors import NoSuchElementException, StaleElementException
+from marionette.errors import NoSuchElementException
 
 import firefox_puppeteer.errors as errors
 
@@ -62,7 +62,54 @@ class TabBar(UIBaseLib):
         """
         return MenuPanel(lambda: self.marionette)
 
-    def get_tab(self, target):
+    def close_all_tabs(self, exceptions=None):
+        pass
+
+    def close_tab(self, trigger='menu', force=False):
+        if force:
+            pass
+        if callable(trigger):
+            trigger(self.window)
+        elif isinstance(trigger, Tab):
+            trigger.close()
+        elif trigger == 'menu':
+            # TODO: Make use of menubar class once it supports ids
+            menu = self.window.marionette.find_element('id', 'menu_close')
+            menu.click()
+        elif trigger == 'shortcut':
+            self.window.send_shortcut(self.window.get_localized_entity('closeCmd.key'),
+                                      accel=True)
+        else:
+            raise errors.InvalidValueError('Unknown closing method: "%s"' % trigger)
+
+        # TODO:
+        # * check if tabcount -1
+        # * switch to currently selected tab via self.switch_to() and callback param
+        # * return new tab intance
+
+    def open_tab(self, trigger='menu'):
+        # Prepare action which triggers the opening of the browser window
+        if callable(trigger):
+            trigger(self.window)
+        elif trigger == 'button':
+            self.window.tabbar.newtab_button.click()
+        elif trigger == 'menu':
+            # TODO: Make use of menubar class once it supports ids
+            menu = self.window.marionette.find_element('id', 'menu_newNavigatorTab')
+            menu.click()
+        elif trigger == 'shortcut':
+            self.window.send_shortcut(self.window.get_localized_entity('tabCmd.commandkey'),
+                                      accel=True)
+        # elif - need to add other cases
+        else:
+            raise errors.InvalidValueError('Unknown opening method: "%s"' % trigger)
+
+        # TODO:
+        # * check if tabcount +1
+        # * return new tab intance
+
+    def switch_to(self, target):
+        # TODO
         """
         Get a reference to the specified tab.
 
@@ -70,17 +117,10 @@ class TabBar(UIBaseLib):
         :returns: A :class:`TabElement` corresponding to the specified tab.
         """
         if isinstance(target, int):
-            return self.tabs[target]
-
-        if isinstance(target, basestring):
-            for tab in self.tabs:
-                if target in tab.get_attribute('label'):
-                    return tab
-
-            raise NoSuchElementException('Tab with a label containing "{}"" not'
-                                         ' found'.format(target))
-
-        raise TypeError("Invalid type for 'target': {}".format(type(target)))
+            self.tabs[target]
+        elif callable(target):
+            # TODO: similar to Windows.switch_to()
+            pass
 
 
 class Tab(UIBaseLib):
@@ -113,32 +153,30 @@ class Tab(UIBaseLib):
         # self.marionette.switch_to_window(self._handle)
         return self.marionette.execute_script("""
             let tab = arguments[0];
-            return tab.getAttribute('selected');
+            return tab.hasAttribute('selected');
         """, script_args=[self._tab])
 
-    def close(self):
-        """
-        Closes this tab.
-        """
-        close_button = (self.find_element('anon', None)
-                            .find_element('class name',
-                                          'tab-close-button'))
-        ret = close_button.click()
+    def close(self, *args, **kwargs):
+        self.switch_to()
+        self.window.tabbar.close_tab()  # self, *args, **kwargs)
 
-        def im_gone(m):
-            try:
-                self.tag_name
-                return False
-            except StaleElementException:
-                return True
-        Wait(self.marionette).until(im_gone)
-        return ret
+    def open(self, *args, **kwargs):
+        self.window.tabbar.open_tab(self, *args, **kwargs)
 
-    def switch_to(self):
-        """Switch to (activate) the specified tab.
-        """
-        self.marionette.switch_to(self._handle)
-        return tab.click()
+    def select(self):
+        # TODO: We might want to use a browser API method to select the tab?
+        # problem is with too many tabs open and its not being visible. not sure
+        # if we scroll automatically.
+        self._tab.click()
+        self.marionette.switch_to_window(self.handle)
+
+    def switch_to(self, focus=False):
+        """Switch to (activate) the specified tab."""
+        if focus:
+            # handle self.focus()
+            pass
+
+        self.marionette.switch_to_window(self._handle)
 
 
 class MenuPanel(UIBaseLib):

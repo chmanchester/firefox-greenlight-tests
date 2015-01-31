@@ -3,7 +3,7 @@
 # file, You can obtain one at http://mozilla.org/MPL/2.0/.
 
 from marionette import By
-from marionette.errors import NoSuchElementException
+# from marionette.errors import NoSuchElementException
 
 from firefox_ui_harness.decorators import skip_if_e10s
 from firefox_ui_harness.testcase import FirefoxTestCase
@@ -45,18 +45,13 @@ class TestAboutPrivateBrowsing(FirefoxTestCase):
         self.browser_pb = self.windows.switch_to(lambda win: win.is_private)
         self.assertTrue(self.browser_pb.is_private)
 
-        with self.marionette.using_context('content'):
-            def find_element(mn):
-                try:
-                    link = self.marionette.find_element(By.ID, 'learnMore')
-                    link.click()
-                    return True
-                except NoSuchElementException:
-                    return False
+        def opener(win):
+            with win.marionette.using_context('content'):
+                link = win.marionette.find_element(By.ID, 'learnMore')
+                link.click()
+        self.browser_pb.tabbar.open_tab(opener)
 
-            self.wait_for_condition(find_element)
-
-        self.assertEqual(len(self.browser.tabbar.tabs), 2,
+        self.assertEqual(len(self.browser_pb.tabbar.tabs), 2,
                          "A new tab has been opened")
 
         target_url = self.pb_url + 'private-browsing'

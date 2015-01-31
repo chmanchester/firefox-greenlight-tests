@@ -437,6 +437,8 @@ class BrowserWindow(BaseWindow):
 
         See the :class:`~ui.tabbar.TabBar` reference.
         """
+        self.switch_to()
+
         if not self._tabbar:
             from .tabbar import TabBar
             self._tabbar = TabBar(lambda: self.marionette, self)
