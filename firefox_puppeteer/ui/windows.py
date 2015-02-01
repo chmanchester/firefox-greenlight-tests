@@ -343,7 +343,7 @@ class BaseWindow(BaseLib):
         platform = self.marionette.session_capabilities['platformName'].lower()
 
         keymap = {
-            'accel': Keys.META if platform is 'darwin' else Keys.CONTROL,
+            'accel': Keys.META if platform == 'darwin' else Keys.CONTROL,
             'alt': Keys.ALT,
             'cmd': Keys.COMMAND,
             'ctrl': Keys.CONTROL,

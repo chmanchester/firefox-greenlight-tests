@@ -49,7 +49,10 @@ class TabBar(UIBaseLib):
                   tab.
         """
         for tab in self.tabs:
-            if tab.is_active():
+            is_active = self.marionette.execute_script("""
+              return arguments[0] == gBrowser.selectedTab;
+            """, script_args=[tab._tab])
+            if is_active:
                 return tab
 
     @property
@@ -66,6 +69,7 @@ class TabBar(UIBaseLib):
         pass
 
     def close_tab(self, trigger='menu', force=False):
+        start_handles = self.marionette.window_handles
         if force:
             pass
         if callable(trigger):
@@ -82,12 +86,16 @@ class TabBar(UIBaseLib):
         else:
             raise errors.InvalidValueError('Unknown closing method: "%s"' % trigger)
 
-        # TODO:
-        # * check if tabcount -1
-        # * switch to currently selected tab via self.switch_to() and callback param
-        # * return new tab intance
+        Wait(self.marionette).until(
+            lambda _: len(self.tabs) + 1 == len(start_handles))
+
+        selected_handle = TabBar.get_handle_for_tab(self.marionette, self.active_tab)
+        return self.switch_to(lambda tab: tab.handle == selected_handle)
+
 
     def open_tab(self, trigger='menu'):
+        start_handles = self.marionette.window_handles
+
         # Prepare action which triggers the opening of the browser window
         if callable(trigger):
             trigger(self.window)
@@ -104,23 +112,50 @@ class TabBar(UIBaseLib):
         else:
             raise errors.InvalidValueError('Unknown opening method: "%s"' % trigger)
 
-        # TODO:
-        # * check if tabcount +1
-        # * return new tab intance
+        Wait(self.marionette).until(
+            lambda _: len(start_handles) + 1 == len(self.tabs))
+
+        handles = self.marionette.window_handles
+        [new_handle] = list(set(handles) - set(start_handles))
+        [new_tab] = [tab for tab in self.tabs if tab.handle == new_handle]
+        return new_tab
 
     def switch_to(self, target):
-        # TODO
         """
         Get a reference to the specified tab.
 
         :param target: Either an index of `tabs` or a substring of the label.
         :returns: A :class:`TabElement` corresponding to the specified tab.
         """
+        start_handle = self.marionette.current_window_handle
         if isinstance(target, int):
-            self.tabs[target]
-        elif callable(target):
-            # TODO: similar to Windows.switch_to()
-            pass
+            tab = self.tabs[target]
+            self.marionette.switch_to_window(tab.handle)
+            return tab
+        if callable(target):
+            start_handle = self.marionette.current_window_handle
+            handles = self.marionette.window_handles
+            for handle in handles:
+                self.marionette.switch_to_window(handle)
+                [tab] = [tab for tab in self.tabs if tab.handle == handle]
+                if target(tab):
+                    return tab
+
+            self.marionette.switch_to_window(start_handle)
+            raise errors.UnknownTabError("No tab found for '{}'".format(target))
+
+        raise ValueError("The 'target' parameter must either be an index or a callable")
+
+    @staticmethod
+    def get_handle_for_tab(marionette, tab_instance):
+        handle = marionette.execute_script("""
+          var win = arguments[0].linkedBrowser.contentWindowAsCPOW;
+          var id = win.QueryInterface(Ci.nsIInterfaceRequestor)
+                      .getInterface(Ci.nsIDOMWindowUtils)
+                      .outerWindowID.toString();
+          return id;
+        """, script_args=[tab_instance._tab])
+        return handle
 
 
 class Tab(UIBaseLib):
@@ -130,13 +165,12 @@ class Tab(UIBaseLib):
         UIBaseLib.__init__(self, marionette_getter, window)
 
         self._tab = tab_element
-        self._handle = self.marionette.execute_script("""
-          var win = arguments[0].linkedBrowser.contentWindowAsCPOW;
-          var id = win.QueryInterface(Ci.nsIInterfaceRequestor)
-                        .getInterface(Ci.nsIDOMWindowUtils)
-                        .outerWindowID.toString();
-          return id;
-        """, script_args=[tab_element])
+        self._handle = TabBar.get_handle_for_tab(self.marionette, self)
+
+    def __eq__(self, other):
+        return other.handle == self.handle
+
+
 
     @property
     def handle(self):
