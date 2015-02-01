@@ -112,8 +112,10 @@ class TabBar(UIBaseLib):
         else:
             raise errors.InvalidValueError('Unknown opening method: "%s"' % trigger)
 
-        Wait(self.marionette).until(
-            lambda _: len(start_handles) + 1 == len(self.tabs))
+
+        def new_tab_open(mn):
+            return len(start_handles) + 1 == len(mn.window_handles)
+        Wait(self.marionette).until(new_tab_open)
 
         handles = self.marionette.window_handles
         [new_handle] = list(set(handles) - set(start_handles))

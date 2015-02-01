@@ -21,28 +21,22 @@ class TestTabs(FirefoxTestCase):
         self.assertEqual(len(tabbar.tabs), 1)
         self.assertTrue(tabbar.tabs[0].selected)
 
-        # Open and close a new tab by menu
+        # Open and close a new tab by each method.
         # TODO we may have to auto switch to this tab?
-        tabbar.open_tab()
-        self.assertEqual(len(tabbar.tabs), 2)
-        self.assertEqual(tabbar.tabs[0].handle, self.marionette.current_window_handle)
-        self.assertFalse(tabbar.tabs[0].selected)
-        self.assertTrue(tabbar.tabs[1].selected)
+        strategies = ('button', 'menu', 'shortcut')
+        for trigger in strategies:
+            tabbar.open_tab(trigger=trigger)
+            self.assertEqual(len(tabbar.tabs), 2)
+            self.assertEqual(tabbar.tabs[0].handle, self.marionette.current_window_handle)
+            self.assertFalse(tabbar.tabs[0].selected)
+            self.assertTrue(tabbar.tabs[1].selected)
 
-        tab = tabbar.close_tab()
-        self.assertEqual(len(tabbar.tabs), 1)
-        self.assertEqual(tab.handle, tabbar.tabs[0].handle)
-        self.assertEqual(tab.handle, self.marionette.current_window_handle)
-        self.assertTrue(tabbar.tabs[0].selected)
+            tab = tabbar.close_tab()
+            self.assertEqual(len(tabbar.tabs), 1)
+            self.assertEqual(tab.handle, tabbar.tabs[0].handle)
+            self.assertEqual(tab.handle, self.marionette.current_window_handle)
+            self.assertTrue(tabbar.tabs[0].selected)
 
-        # Open and close a new tab by shortcut
-        tabbar.open_tab(trigger='shortcut')
-        self.assertEqual(len(tabbar.tabs), 2)
-        tab = tabbar.close_tab(trigger='shortcut')
-        self.assertEqual(len(tabbar.tabs), 1)
-        self.assertEqual(tab.handle, tabbar.tabs[0].handle)
-        self.assertEqual(tab.handle, self.marionette.current_window_handle)
-        self.assertTrue(tabbar.tabs[0].selected)
 
     def test_switch_to_tab(self):
         tabbar = self.browser.tabbar
