@@ -150,9 +150,13 @@ class TabBar(UIBaseLib):
 
     @staticmethod
     def get_handle_for_tab(marionette, tab_instance):
+        # TODO: This introduces coupling with marionette's window handles
+        # implementation. To avoid this, the capacity to get the XUL
+        # element corresponding to the active window according to
+        # marionette or a similar ability should be added to marionette.
         handle = marionette.execute_script("""
-          var win = arguments[0].linkedBrowser.contentWindowAsCPOW;
-          var id = win.QueryInterface(Ci.nsIInterfaceRequestor)
+          let win = arguments[0].linkedBrowser.contentWindowAsCPOW;
+          let id = win.QueryInterface(Ci.nsIInterfaceRequestor)
                       .getInterface(Ci.nsIDOMWindowUtils)
                       .outerWindowID.toString();
           return id;
