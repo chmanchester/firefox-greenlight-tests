@@ -2,6 +2,8 @@
 # License, v. 2.0. If a copy of the MPL was not distributed with this
 # file, You can obtain one at http://mozilla.org/MPL/2.0/.
 
+import re
+
 from marionette import MarionetteTestCase
 
 from firefox_puppeteer import Puppeteer
@@ -12,6 +14,8 @@ class FirefoxTestCase(MarionetteTestCase, Puppeteer):
     Test case that inherits from a Puppeteer object so Firefox specific
     libraries are exposed to test scope.
     """
+    match_re = re.compile(".*")
+
     def __init__(self, *args, **kwargs):
         MarionetteTestCase.__init__(self, *args, **kwargs)
 
