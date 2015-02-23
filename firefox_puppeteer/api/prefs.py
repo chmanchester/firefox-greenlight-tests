@@ -202,3 +202,11 @@ class Preferences(BaseLib):
             """, script_args=[pref_name, value])
 
         assert retval
+
+    def persist_prefs(self):
+        """Persist current pref values to the default prefs file (typically prefs.js)
+        """
+        self.marionette.execute_script("""
+          Cu.import("resource://gre/modules/Services.jsm");
+          Services.prefs.savePrefFile(null);
+        """)

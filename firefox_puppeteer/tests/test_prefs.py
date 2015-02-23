@@ -154,3 +154,28 @@ class testPreferences(FirefoxTestCase):
 
         self.prefs.set_pref(self.string_pref, 'test_string')
         self.assertEqual(self.prefs.get_pref(self.string_pref), 'test_string')
+
+    def test_persist_prefs_across_restart(self):
+        old_prefs = {
+            self.bool_pref: self.prefs.get_pref(self.bool_pref),
+            self.int_pref: self.prefs.get_pref(self.int_pref),
+        }
+
+        new_prefs = {
+            self.bool_pref: not old_prefs[self.bool_pref],
+            self.int_pref: old_prefs[self.int_pref] + 1,
+        }
+
+        for pref, val in new_prefs.iteritems():
+            self.prefs.set_pref(pref, val)
+
+        self.prefs.persist_prefs()
+        self.marionette.restart()
+
+        for pref, val in new_prefs.iteritems():
+            self.assertEqual(self.prefs.get_pref(pref), val)
+
+        self.prefs.restore_all_prefs()
+
+        for pref, val in old_prefs.iteritems():
+            self.assertEqual(self.prefs.get_pref(pref), val)
