@@ -156,26 +156,60 @@ class testPreferences(FirefoxTestCase):
         self.assertEqual(self.prefs.get_pref(self.string_pref), 'test_string')
 
     def test_persist_prefs_across_restart(self):
+        harness_set_pref = 'app.update.auto'
+
         old_prefs = {
             self.bool_pref: self.prefs.get_pref(self.bool_pref),
             self.int_pref: self.prefs.get_pref(self.int_pref),
+            harness_set_pref: self.prefs.get_pref(harness_set_pref),
         }
 
         new_prefs = {
             self.bool_pref: not old_prefs[self.bool_pref],
             self.int_pref: old_prefs[self.int_pref] + 1,
+            harness_set_pref: not old_prefs[harness_set_pref],
         }
 
         for pref, val in new_prefs.iteritems():
             self.prefs.set_pref(pref, val)
 
+        # Without calling persist_prefs everything we've set in this test
+        # will go back to its original value after the restart. The pref
+        # originally set by the harness will persist.
+        self.marionette.restart()
+
+        for pref, val in old_prefs.iteritems():
+            self.assertEqual(self.prefs.get_pref(pref), val)
+
+        self.prefs.restore_all_prefs()
+
+        for pref, val in old_prefs.iteritems():
+            self.assertEqual(self.prefs.get_pref(pref), val)
+
+        for pref, val in new_prefs.iteritems():
+            self.prefs.set_pref(pref, val)
+
+        # Once we call persist prefs, everything set here is persisted
+        # across the restart, except for the harness set value.
         self.prefs.persist_prefs()
         self.marionette.restart()
 
         for pref, val in new_prefs.iteritems():
-            self.assertEqual(self.prefs.get_pref(pref), val)
+            if pref != harness_set_pref:
+                self.assertEqual(self.prefs.get_pref(pref), val)
+            else:
+                self.assertEqual(self.prefs.get_pref(pref), old_prefs[pref])
 
         self.prefs.restore_all_prefs()
+
+        # If a pref is passed as an argument to restart, it is always persisted.
+        self.marionette.restart(prefs=new_prefs)
+
+        for pref, val in new_prefs.iteritems():
+            self.assertEqual(self.prefs.get_pref(pref), val)
+
+        # Getting back to defaults requires explicitly re-setting them.
+        self.marionette.enforce_gecko_prefs(old_prefs)
 
         for pref, val in old_prefs.iteritems():
             self.assertEqual(self.prefs.get_pref(pref), val)

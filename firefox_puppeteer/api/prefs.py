@@ -206,7 +206,9 @@ class Preferences(BaseLib):
     def persist_prefs(self):
         """Persist current pref values to the default prefs file (typically prefs.js)
         """
-        self.marionette.execute_script("""
-          Cu.import("resource://gre/modules/Services.jsm");
-          Services.prefs.savePrefFile(null);
-        """)
+        with self.marionette.using_context('chrome'):
+            self.marionette.execute_script("""
+              Cu = Components.utils;
+              Cu.import("resource://gre/modules/Services.jsm");
+              Services.prefs.savePrefFile(null);
+            """)
