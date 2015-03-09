@@ -583,6 +583,8 @@ class BrowserWindow(BaseWindow):
                 menu = win.marionette.find_element(By.ID, 'menu_pageInfo')
                 menu.click()
             elif trigger == 'shortcut':
+                if win.marionette.session_capabilities['platform'] == 'WINNT':
+                    raise ValueError('page info shortcut not available on windows')
                 win.send_shortcut(win.get_entity('pageInfoCmd.commandkey'),
                                   accel=True)
             elif trigger == 'context_menu':
