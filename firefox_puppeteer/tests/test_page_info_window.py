@@ -68,12 +68,16 @@ class TestPageInfoWindow(FirefoxTestCase):
                            opener,
                            )
 
-        if self.marionette.session_capabilities['platform'] == 'WINNT':
-            self.assertRaises(ValueError, self.browser.open_page_info_window,
-                              trigger='shortcut')
-            open_strategies = ('menu',)
-
         for trigger in open_strategies:
+
+            if self.platform == 'winnt':
+                if trigger == 'shortcut':
+                    self.assertRaises(ValueError, self.browser.open_page_info_window,
+                                      trigger=trigger)
+                    continue
+                if callable(trigger):
+                    continue
+
             page_info = self.browser.open_page_info_window(trigger=trigger)
             self.assertEquals(page_info, self.windows.current)
             page_info.close()
