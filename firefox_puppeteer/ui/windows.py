@@ -333,7 +333,6 @@ class BaseWindow(BaseLib):
             return len(mn.chrome_window_handles) == len(start_handles) + 1
         Wait(self.marionette).until(window_opened)
 
-
         handles = self.marionette.chrome_window_handles
         [new_handle] = list(set(handles) - set(start_handles))
 
