@@ -99,10 +99,8 @@ class Windows(BaseLib):
             if handle != self.marionette.current_chrome_window_handle:
                 self.switch_to(handle)
 
+            Wait(self.marionette).until(lambda mn: mn.get_window_type() is not None)
             window_type = self.marionette.get_window_type()
-            if window_type is None:
-                Wait(self.marionette).until(lambda mn: mn.get_window_type() is not None)
-                window_type = self.marionette.get_window_type()
         finally:
             # Ensure to switch back to the original window
             if handle != current_handle:
@@ -588,7 +586,7 @@ class BrowserWindow(BaseWindow):
                 menu.click()
             elif trigger == 'shortcut':
                 if win.marionette.session_capabilities['platform'] == 'WINNT':
-                    raise ValueError('page info shortcut not available on windows')
+                    raise ValueError('Page info shortcut not available on Windows.')
                 win.send_shortcut(win.get_entity('pageInfoCmd.commandkey'),
                                   accel=True)
             elif trigger == 'context_menu':
