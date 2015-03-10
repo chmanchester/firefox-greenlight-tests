@@ -103,7 +103,6 @@ class Windows(BaseLib):
             if window_type is None:
                 Wait(self.marionette).until(lambda mn: mn.get_window_type() is not None)
                 window_type = self.marionette.get_window_type()
-                print("After waiting the window type is: %s" % window_type)
         finally:
             # Ensure to switch back to the original window
             if handle != current_handle:
@@ -174,8 +173,6 @@ class Windows(BaseLib):
         # only switch if necessary
         if target_handle != self.marionette.current_chrome_window_handle:
             self.marionette.switch_to_window(target_handle)
-        print ("Switched to %s" % target_handle)
-        print ("Its type is %s" % self.marionette.get_window_type())
 
         return self.create_window_instance(target_handle)
 
@@ -323,8 +320,6 @@ class BaseWindow(BaseLib):
         # Bug 1121698
         # For more stable tests register an observer topic first
         start_handles = self.marionette.chrome_window_handles
-        print ("There are %s window handles before running the callback" % len(start_handles))
-        print ("They are: %s" % start_handles)
 
         self.switch_to()
         with self.marionette.using_context('chrome'):
@@ -340,9 +335,7 @@ class BaseWindow(BaseLib):
 
 
         handles = self.marionette.chrome_window_handles
-        print ("The new window handles are: %s" % handles)
         [new_handle] = list(set(handles) - set(start_handles))
-        print ("The new handle is: %s" % new_handle)
 
         assert new_handle is not None
 
