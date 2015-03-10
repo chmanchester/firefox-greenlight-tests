@@ -20,7 +20,7 @@ install:
 
 before_test:
     # Run pep8 on all except the checked out marionette-client folder
-    # - "%PYTHON%/Scripts/pep8 --max-line-length=99 --exclude=client ."
+    - "%PYTHON%/Scripts/pep8 --max-line-length=99 --exclude=client ."
 
     # Download latest Firefox Nightly, which is compatible with the Marionette client version used
     - "%PYTHON%/Scripts/mozdownload -t daily -p win32 --destination %CD%/firefox-installer.exe"
