@@ -95,6 +95,12 @@ class Windows(BaseLib):
         window = None
 
         try:
+            Wait(self.marionette).until(lambda mn: self.marionette.execute_script("""
+              Components.utils.import("resource://gre/modules/Services.jsm");
+              let win = Services.wm.getOuterWindowWithId(Number(arguments[0]));
+              return win.document.readyState == 'complete';
+            """, script_args=[handle]))
+
             # Retrieve window type to determine the type of chrome window
             if handle != self.marionette.current_chrome_window_handle:
                 self.switch_to(handle)
@@ -340,7 +346,6 @@ class BaseWindow(BaseLib):
         assert new_handle is not None
 
         window = self._windows.create_window_instance(new_handle, expected_window_class)
-        Wait(self.marionette).until(lambda _: window.loaded)
 
         Wait(self.marionette).until(lambda _: window.focused == expect_focus)
 
